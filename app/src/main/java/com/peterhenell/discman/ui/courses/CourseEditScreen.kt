@@ -13,8 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -95,7 +95,10 @@ fun CourseEditScreen(
             value = course.name,
             onValueChange = { viewModel.updateCourseName(it) },
             label = { Text("Course Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words
+            )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -104,7 +107,10 @@ fun CourseEditScreen(
             value = course.location,
             onValueChange = { viewModel.updateCourseLocation(it) },
             label = { Text("Location") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -290,7 +296,10 @@ fun HoleEditItem(
                 value = hole.description ?: "",
                 onValueChange = { onUpdate(hole.copy(description = it.ifBlank { null })) },
                 label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                )
             )
         }
     }

@@ -183,8 +183,9 @@ fun ScorecardTable(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Empty header for player names
             Text(
-                text = "Player",
+                text = "",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1.5f)
@@ -198,10 +199,10 @@ fun ScorecardTable(
                     modifier = Modifier.weight(0.5f),
                     textAlign = TextAlign.Center
                 )
+            // leave this header empty, its implied that the last column is the total score
             }
-
             Text(
-                text = "Tot",
+                text = "",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(0.6f),
