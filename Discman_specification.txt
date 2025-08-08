@@ -1,0 +1,70 @@
+# DiscGolf course and score management Android App
+
+## Core Features:
+- Add courses with details (name, location, holes). Holes have details like par, distance, and description.
+- Start a game, add players to the game, select a course and start scoring
+- Score tracking for each player per hole per game
+- View previously played games
+- Share scores via sms or email
+
+## UI Requirements:
+- Bottom navigation (Manage courses, Play game, See historic scores, Manage players)
+- Manage courses view:
+  - List all courses with options to add, edit, or delete courses. The list shows the course name and its number of holes.
+  - Add/Edit course view:
+    - Input fields for course name, location, and holes
+    - Each hole has input fields for par (default 3), distance, description, and GPS coordinates
+    - The par number of each hole can be adjusted with buttons for decrease and increasis shown e by 1, these buttons have minus sign and plus sign as their body.
+    - The order of the holes is determined by their order in the list. Holes can be reordered by dragging. When saving, the order of the holes is saved as hole number.
+    - Done button to store the course in the database and navigate back to the Manage courses view.
+    - Cancel button to abort the process, ignoring any changes made. This also navigates back to the Manage courses view.
+  - The Add course view is the same view as the Edit course view. The difference is that Adding a course creates a new course, and Edit course enables making changes to an existing course.
+- Play Game view: 
+  - Select course from all stored courses. The list of available courses is ordered in alphabetical order in a drop down menu.
+  - Add players from a multiselect list of all players. 
+  - Start game button. This creates a new Game and navigates the user to the Game Scoring card view with the newly created game as content.
+- Game Scoring card view:
+  - Shows a standard disc golf scoring card but modified to have holes vertically instead of horizontally.
+  - The scording card have the game details such as name of the course, game start date, and the sum of the course's par value, at the top. 
+  - Underneath the game details is a grid with each hole as rows and each player as columns. The holes are ordered according to their hole number in ascending order.
+  - The first row of the grid contains headers: "Hole no", "Player A", "Player B" and so on for each players in the game.
+  - The first column of the grid will contain the hole number with the hole's par number in parantases.
+  - The columns for each of the players will cointain their score for the corresponding hole.
+  - When a game is started, the first hole is made the Current hole. The current hole is expanded so that it can fit the Current hole view.
+  - The current hole view contains a list of the players, with buttons to modify their number of throws for the current hole. For each player it shows the Player name, a button to decrease the number of throws, the current amount of throws, and a button to increase the number of throws for the hole, and then the score for the hole. Scores are calculated according to the standard disc golf rules. The default value for the number of throws is the par value of the current hole. 
+  - Press "Next Hole" to make the next hole in order the current hole. It is also possible to click any hole number in the grid to make it the current hole.
+  - Below the grid is a button to "Complete game". Pressing this will navigate the user to the Complated game view.
+- Completed game view:
+  - Show total scores for each player, as well as the number of throws and scores for each hole.
+  - Option to share scores via sms or email
+  - Button to open the game up for editing, this opens the game up in the Game scoring card view.
+  - Button to close the view and return to the historical games view.
+- Historic games view:
+  - List all saved games with scores, ordered by the game start date descending.
+  - Click on a game to open the game in the Completed game view.
+
+## Data Structure:
+- Course: course id, name, location, holes
+- Hole: hole number (hole numbers are unique per course and are possitive), par, distance, description, gps coordinates
+- Player: name, player id
+- Game: the selected course, start date, game id
+- GamePlayers: game id, player id
+- GamePlayerHoleThrows: player id, game id, hole number, number of throws
+
+## Data storage behaviour
+- As soon as a game is created, all data entities related to the game is stored in the database.
+  - a Game is stored to the database, with a new game id
+  - For each player assigned to the game a GamePlayer is stored.
+  - For each Player and Hole (of the course) a GamePlayerHoleThrow is stored with Number of throws equal to each hole's par value.
+- During an active game:
+  - When the number of throws is updated for a player on a hole, the number of throws is updated (for that player for that hole for that game) in the GamePlayerHoleThrow table.
+
+## Data Storage:
+- Use SQLite for local storage for all data structures.
+- Hide all datga access behind a DataStorage service, so that the data storage may be moved in the future.
+- Data should be stored in the database as soon as possible and implicitly, so that the user does not need to press additional buttons for persisting the data.
+
+## Implementation stack and architecture
+- Should be implemented in Kotlin and Jetpack Compose
+- It should follow best practices for structure and app achitecture
+- It should use a light gray theme
