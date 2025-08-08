@@ -185,31 +185,31 @@ fun ScorecardTable(
         ) {
             Text(
                 text = "Player",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(2f)
+                modifier = Modifier.weight(1.5f)
             )
 
             holes.forEach { hole ->
                 Text(
                     text = "${hole.holeNumber}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(0.5f),
                     textAlign = TextAlign.Center
                 )
             }
 
             Text(
-                text = "Total",
-                style = MaterialTheme.typography.titleMedium,
+                text = "Tot",
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(0.6f),
                 textAlign = TextAlign.Center
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Player rows
         playerScores.forEach { playerScore ->
@@ -220,9 +220,10 @@ fun ScorecardTable(
             ) {
                 Text(
                     text = playerScore.player.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(2f)
+                    modifier = Modifier.weight(1.5f),
+                    maxLines = 1
                 )
 
                 holes.forEach { hole ->
@@ -235,33 +236,37 @@ fun ScorecardTable(
                             score > 0 -> "+$score"
                             else -> score.toString()
                         },
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
-                            .weight(1f)
-                            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                            .padding(2.dp),
+                            .weight(0.5f)
+                            .border(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
+                            .padding(1.dp),
                         textAlign = TextAlign.Center,
                         color = when {
                             score < 0 -> MaterialTheme.colorScheme.primary
                             score > 0 -> MaterialTheme.colorScheme.error
                             else -> MaterialTheme.colorScheme.onSurface
-                        }
+                        },
+                        maxLines = 1
                     )
                 }
 
                 // Total score
                 Text(
                     text = when {
-                        playerScore.totalScore == 0 -> "Even"
+                        playerScore.totalScore == 0 -> "E"
                         playerScore.totalScore > 0 -> "+${playerScore.totalScore}"
                         else -> playerScore.totalScore.toString()
                     },
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
+                    modifier = Modifier.weight(0.6f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
+
+            Spacer(modifier = Modifier.height(2.dp))
         }
     }
 }
