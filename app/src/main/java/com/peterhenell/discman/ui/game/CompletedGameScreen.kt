@@ -57,7 +57,7 @@ fun CompletedGameScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
         // Header
         Text(
@@ -74,7 +74,7 @@ fun CompletedGameScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(8.dp)
             ) {
                 Text(
                     text = course.name,
@@ -82,11 +82,11 @@ fun CompletedGameScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Date: ${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(game.startDate)}",
+                    text = "${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(game.startDate)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Total Par: ${holes.sumOf { it.par }}",
+                    text = "Course Par: ${holes.sumOf { it.par }}",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -109,7 +109,7 @@ fun CompletedGameScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(8.dp)
             ) {
 
                 ScorecardTable(
@@ -234,7 +234,7 @@ fun ScorecardTable(
                     Text(
                         text = when {
                             score == 0 -> "E"
-                            score > 0 -> "+$score"
+                            score > 0 -> "$score"
                             else -> score.toString()
                         },
                         style = MaterialTheme.typography.labelSmall,
@@ -263,7 +263,12 @@ fun ScorecardTable(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(0.6f),
                     textAlign = TextAlign.Center,
-                    maxLines = 1
+                    maxLines = 1,
+                    color = when {
+                        playerScore.totalScore < 0 -> MaterialTheme.colorScheme.primary
+                        playerScore.totalScore > 0 -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
                 )
             }
 
