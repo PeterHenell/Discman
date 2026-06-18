@@ -1,11 +1,10 @@
 package com.peterhenell.discman.ui.game
 
 import android.content.Intent
-import androidx.compose.foundation.border
+import android.text.format.DateFormat as AndroidDateFormat
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -83,7 +82,11 @@ fun CompletedGameScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(game.startDate)}",
+                    text = run {
+                        val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
+                        val timeFmt = AndroidDateFormat.getTimeFormat(context)
+                        "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -96,11 +99,11 @@ fun CompletedGameScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Scorecard
-        Text(
-            text = "Scorecard",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
+//        Text(
+//            text = "Scorecard",
+//            style = MaterialTheme.typography.titleLarge,
+//            fontWeight = FontWeight.Bold
+//        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -177,7 +180,7 @@ fun ScorecardTable(
 
     val holeColWidth = 48.dp
     val parColWidth = 36.dp
-    val playerColWidth = 56.dp
+    val playerColWidth = 72.dp
 
     Column(
         modifier = Modifier
@@ -211,8 +214,7 @@ fun ScorecardTable(
                             score < 0 -> MaterialTheme.colorScheme.primary
                             score > 0 -> MaterialTheme.colorScheme.error
                             else -> MaterialTheme.colorScheme.onSurface
-                        },
-                        bordered = true
+                        }
                     )
                 }
             }
@@ -233,7 +235,7 @@ fun ScorecardTable(
                     else -> ps.totalScore.toString()
                 }
                 ScorecardCell(
-                    text = totalText,
+                    text = "$totalText (${ps.totalThrows})",
                     width = playerColWidth,
                     bold = true,
                     color = when {
@@ -253,7 +255,6 @@ private fun ScorecardCell(
     width: androidx.compose.ui.unit.Dp,
     bold: Boolean = false,
     isHeader: Boolean = false,
-    bordered: Boolean = false,
     color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
     maxLines: Int = 1
 ) {
@@ -267,13 +268,6 @@ private fun ScorecardCell(
         color = color,
         modifier = Modifier
             .width(width)
-            .then(
-                if (bordered) Modifier.border(
-                    0.5.dp,
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                    RoundedCornerShape(2.dp)
-                ) else Modifier
-            )
             .padding(vertical = 4.dp, horizontal = 2.dp)
     )
 }
