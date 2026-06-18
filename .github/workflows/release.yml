@@ -73,7 +73,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.name }}
           body: |
-            Automated release created from PR #${{ github.event.pull_request.number }}: **${{ github.event.pull_request.title }}**
+            Automated release created from MR #${{ github.event.pull_request.number }}: **${{ github.event.pull_request.title }}**
 
             Merged by @${{ github.event.pull_request.merged_by.login }} on ${{ github.event.pull_request.merged_at }}
           files: ${{ steps.apk.outputs.path }}
