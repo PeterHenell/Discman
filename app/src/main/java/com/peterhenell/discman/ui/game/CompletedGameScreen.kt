@@ -2,6 +2,7 @@ package com.peterhenell.discman.ui.game
 
 import android.content.Intent
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -171,110 +172,110 @@ fun ScorecardTable(
     holes: List<com.peterhenell.discman.data.entities.Hole>,
     playerScores: List<PlayerScore>
 ) {
-    val scrollState = rememberScrollState()
+    val verticalScrollState = rememberScrollState()
+    val horizontalScrollState = rememberScrollState()
+
+    val holeColWidth = 48.dp
+    val parColWidth = 36.dp
+    val playerColWidth = 56.dp
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(scrollState)
+            .fillMaxSize()
+            .horizontalScroll(horizontalScrollState)
+            .verticalScroll(verticalScrollState)
     ) {
-        // Header row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Empty header for player names
-            Text(
-                text = "",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1.5f)
-            )
-
-            holes.forEach { hole ->
-                Text(
-                    text = "${hole.holeNumber}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(0.5f),
-                    textAlign = TextAlign.Center
-                )
-            // leave this header empty, its implied that the last column is the total score
+        // Header row: Hole | Par | Player1 | Player2 | ...
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ScorecardCell(text = "Hole", width = holeColWidth, bold = true, isHeader = true)
+            ScorecardCell(text = "Par", width = parColWidth, bold = true, isHeader = true)
+            playerScores.forEach { ps ->
+                ScorecardCell(text = ps.player.name, width = playerColWidth, bold = true, isHeader = true, maxLines = 1)
             }
-            Text(
-                text = "",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(0.6f),
-                textAlign = TextAlign.Center
-            )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
-        // Player rows
-        playerScores.forEach { playerScore ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = playerScore.player.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.weight(1.5f),
-                    maxLines = 1
-                )
-
-                holes.forEach { hole ->
-                    val throws = playerScore.holeScores[hole.holeNumber] ?: hole.par
+        // One row per hole
+        holes.forEach { hole ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ScorecardCell(text = "${hole.holeNumber}", width = holeColWidth, bold = true)
+                ScorecardCell(text = "${hole.par}", width = parColWidth)
+                playerScores.forEach { ps ->
+                    val throws = ps.holeScores[hole.holeNumber] ?: hole.par
                     val score = throws - hole.par
-
-                    Text(
-                        text = when {
-                            score == 0 -> "E"
-                            score > 0 -> "$score"
-                            else -> score.toString()
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .weight(0.5f)
-                            .border(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
-                            .padding(1.dp),
-                        textAlign = TextAlign.Center,
+                    ScorecardCell(
+                        text = throws.toString(),
+                        width = playerColWidth,
                         color = when {
                             score < 0 -> MaterialTheme.colorScheme.primary
                             score > 0 -> MaterialTheme.colorScheme.error
                             else -> MaterialTheme.colorScheme.onSurface
                         },
-                        maxLines = 1
+                        bordered = true
                     )
                 }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+        }
 
-                // Total score
-                Text(
-                    text = when {
-                        playerScore.totalScore == 0 -> "E"
-                        playerScore.totalScore > 0 -> "+${playerScore.totalScore}"
-                        else -> playerScore.totalScore.toString()
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(0.6f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
+        // Total row
+        Spacer(modifier = Modifier.height(4.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ScorecardCell(text = "Total", width = holeColWidth, bold = true)
+            ScorecardCell(text = "${holes.sumOf { it.par }}", width = parColWidth, bold = true)
+            playerScores.forEach { ps ->
+                val totalText = when {
+                    ps.totalScore == 0 -> "E"
+                    ps.totalScore > 0 -> "+${ps.totalScore}"
+                    else -> ps.totalScore.toString()
+                }
+                ScorecardCell(
+                    text = totalText,
+                    width = playerColWidth,
+                    bold = true,
                     color = when {
-                        playerScore.totalScore < 0 -> MaterialTheme.colorScheme.primary
-                        playerScore.totalScore > 0 -> MaterialTheme.colorScheme.error
+                        ps.totalScore < 0 -> MaterialTheme.colorScheme.primary
+                        ps.totalScore > 0 -> MaterialTheme.colorScheme.error
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
             }
-
-            Spacer(modifier = Modifier.height(2.dp))
         }
     }
+}
+
+@Composable
+private fun ScorecardCell(
+    text: String,
+    width: androidx.compose.ui.unit.Dp,
+    bold: Boolean = false,
+    isHeader: Boolean = false,
+    bordered: Boolean = false,
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    maxLines: Int = 1
+) {
+    val style = if (isHeader) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall
+    Text(
+        text = text,
+        style = style,
+        fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
+        textAlign = TextAlign.Center,
+        maxLines = maxLines,
+        color = color,
+        modifier = Modifier
+            .width(width)
+            .then(
+                if (bordered) Modifier.border(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    RoundedCornerShape(2.dp)
+                ) else Modifier
+            )
+            .padding(vertical = 4.dp, horizontal = 2.dp)
+    )
 }
 
 private fun buildShareText(
