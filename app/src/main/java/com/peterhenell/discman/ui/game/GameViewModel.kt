@@ -198,6 +198,15 @@ class GameViewModel @Inject constructor(
             holes = emptyList()
         )
     }
+
+    fun updateGameDate(newDate: Date) {
+        viewModelScope.launch {
+            val game = _uiState.value.currentGame ?: return@launch
+            val updatedGame = game.copy(startDate = newDate)
+            dataStorage.updateGame(updatedGame)
+            _uiState.value = _uiState.value.copy(currentGame = updatedGame)
+        }
+    }
 }
 
 data class GameUiState(

@@ -10,13 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import android.text.format.DateFormat as AndroidDateFormat
 import com.peterhenell.discman.data.entities.Game
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,6 +94,7 @@ fun GameHistoryItem(
     courseName: String,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth(),
@@ -113,7 +115,11 @@ fun GameHistoryItem(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault()).format(game.startDate),
+                    text = run {
+                        val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
+                        val timeFmt = AndroidDateFormat.getTimeFormat(context)
+                        "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

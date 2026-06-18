@@ -38,12 +38,17 @@ fun DiscmanApp(modifier: Modifier = Modifier) {
                         label = { Text(item.label) },
                         selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
                         onClick = {
+                            val currentRoute = navBackStackEntry?.destination?.route
+                            val isOnSubScreen = currentRoute?.startsWith("completed_game/") == true
+                                    || currentRoute?.startsWith("game_scoring/") == true
+
                             navController.navigate(item.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                                    saveState = !isOnSubScreen
+                                    inclusive = false
                                 }
                                 launchSingleTop = true
-                                restoreState = true
+                                restoreState = !isOnSubScreen
                             }
                         }
                     )

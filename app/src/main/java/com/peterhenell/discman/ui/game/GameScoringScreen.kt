@@ -24,8 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import android.text.format.DateFormat as AndroidDateFormat
+import androidx.compose.ui.platform.LocalContext
 import com.peterhenell.discman.data.entities.Player
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +36,7 @@ fun GameScoringScreen(
     navController: NavController,
     viewModel: GameViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(gameId) {
@@ -78,7 +80,11 @@ fun GameScoringScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Date: ${SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(game.startDate)}",
+                    text = "Date: ${run {
+                        val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
+                        val timeFmt = AndroidDateFormat.getTimeFormat(context)
+                        "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
+                    }}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(

@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -20,7 +21,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.peterhenell.discman.ui.model.PlayerScore
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +44,19 @@ fun CompletedGameScreen(
     val holes = uiState.holes
     val playerScores = viewModel.getPlayerScores().sortedBy { it.totalScore }
 
+    // Date/time picker state
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var pendingDateMillis by remember { mutableStateOf(0L) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = game?.startDate?.time
+    )
+    val timePickerState = rememberTimePickerState(
+        initialHour = Calendar.getInstance().also { it.time = game?.startDate ?: Date() }.get(Calendar.HOUR_OF_DAY),
+        initialMinute = Calendar.getInstance().also { it.time = game?.startDate ?: Date() }.get(Calendar.MINUTE),
+        is24Hour = AndroidDateFormat.is24HourFormat(context)
+    )
+
     if (game == null || course == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -60,43 +73,89 @@ fun CompletedGameScreen(
             .padding(8.dp)
     ) {
         // Header
-        Text(
-            text = "Game Results",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Game Results",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Row {
+                IconButton(onClick = {
+                    val shareText = buildShareText(context, course.name, game.startDate, playerScores, holes)
+                    val intent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        putExtra(Intent.EXTRA_SUBJECT, "Disc Golf Scores - ${course.name}")
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Share Scores"))
+                }) {
+                    Icon(Icons.Default.Share, contentDescription = "Share")
+                }
+                IconButton(onClick = { navController.navigate("game_scoring/$gameId") }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                }
+                IconButton(onClick = {
+                    navController.navigate("history") {
+                        popUpTo("history") { inclusive = true }
+                    }
+                }) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Game info
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RectangleShape,
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier.padding(8.dp)
             ) {
-                Text(
-                    text = course.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = run {
-                        val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
-                        val timeFmt = AndroidDateFormat.getTimeFormat(context)
-                        "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
-                    },
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "Course Par: ${holes.sumOf { it.par }}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = course.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = run {
+                                val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
+                                val timeFmt = AndroidDateFormat.getTimeFormat(context)
+                                "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
+                            },
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit date",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Scorecard
 //        Text(
@@ -105,11 +164,11 @@ fun CompletedGameScreen(
 //            fontWeight = FontWeight.Bold
 //        )
 
-        Spacer(modifier = Modifier.height(8.dp))
 
         // Scorecard Table
         Card(
             modifier = Modifier.weight(1f),
+            shape = RectangleShape,
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
@@ -122,51 +181,56 @@ fun CompletedGameScreen(
                 )
             }
         }
+    }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Action buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+    // Date picker dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            shape = RectangleShape,
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDateMillis = datePickerState.selectedDateMillis ?: game.startDate.time
+                    showDatePicker = false
+                    showTimePicker = true
+                }) { Text("Next") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
         ) {
-            OutlinedButton(
-                onClick = {
-                    val shareText = buildShareText(course.name, game.startDate, playerScores, holes)
-                    val intent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                        putExtra(Intent.EXTRA_SUBJECT, "Disc Golf Scores - ${course.name}")
-                    }
-                    context.startActivity(Intent.createChooser(intent, "Share Scores"))
-                }
-            ) {
-                Icon(Icons.Default.Share, contentDescription = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Share")
-            }
-
-            OutlinedButton(
-                onClick = {
-                    navController.navigate("game_scoring/$gameId")
-                }
-            ) {
-                Icon(Icons.Default.Edit, contentDescription = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Edit")
-            }
-
-            Button(
-                onClick = {
-                    navController.navigate("history") {
-                        popUpTo("history") { inclusive = true }
-                    }
-                }
-            ) {
-                Text("Close")
-            }
+            DatePicker(state = datePickerState)
         }
+    }
+
+    // Time picker dialog
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            shape = RectangleShape,
+            title = { Text("Select time") },
+            text = {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cal = Calendar.getInstance().apply {
+                        timeInMillis = pendingDateMillis
+                        set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                        set(Calendar.MINUTE, timePickerState.minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    viewModel.updateGameDate(cal.time)
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
@@ -273,17 +337,19 @@ private fun ScorecardCell(
 }
 
 private fun buildShareText(
+    context: android.content.Context,
     courseName: String,
     gameDate: Date,
     playerScores: List<PlayerScore>,
     holes: List<com.peterhenell.discman.data.entities.Hole>
 ): String {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, java.util.Locale.getDefault())
+    val timeFmt = AndroidDateFormat.getTimeFormat(context)
     val builder = StringBuilder()
 
     builder.appendLine("🥏 Disc Golf Scores")
     builder.appendLine("Course: $courseName")
-    builder.appendLine("Date: ${dateFormat.format(gameDate)}")
+    builder.appendLine("Date: ${dateFmt.format(gameDate)} ${timeFmt.format(gameDate)}")
     builder.appendLine("Total Par: ${holes.sumOf { it.par }}")
     builder.appendLine()
 
