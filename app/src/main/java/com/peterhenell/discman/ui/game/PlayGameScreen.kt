@@ -1,5 +1,7 @@
 package com.peterhenell.discman.ui.game
 
+import android.text.format.DateFormat as AndroidDateFormat
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,12 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.peterhenell.discman.data.entities.Course
+import com.peterhenell.discman.data.entities.Game
 import com.peterhenell.discman.data.entities.Player
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,12 +29,34 @@ fun PlayGameScreen(
     navController: NavController,
     viewModel: GameViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val courses by viewModel.courses.collectAsStateWithLifecycle()
     val players by viewModel.players.collectAsStateWithLifecycle()
+    val incompleteGames by viewModel.incompleteGames.collectAsStateWithLifecycle()
 
     var showCourseDropdown by remember { mutableStateOf(false) }
     var hasUserStartedGame by remember { mutableStateOf(false) }
+    var gameToDiscard by remember { mutableStateOf<Game?>(null) }
+
+    // Discard confirmation dialog
+    gameToDiscard?.let { game ->
+        val course = courses.find { it.courseId == game.courseId }
+        AlertDialog(
+            onDismissRequest = { gameToDiscard = null },
+            title = { Text("Discard game?") },
+            text = { Text("This will permanently delete the in-progress game on ${course?.name ?: "Unknown Course"}. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGame(game)
+                    gameToDiscard = null
+                }) { Text("Discard", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { gameToDiscard = null }) { Text("Cancel") }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -39,15 +68,79 @@ fun PlayGameScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Incomplete games section
+        if (incompleteGames.isNotEmpty()) {
+            Text(
+                text = "Resume Game",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f, fill = false)
+            ) {
+                items(incompleteGames, key = { it.gameId }) { game ->
+                    val course = courses.find { it.courseId == game.courseId }
+                    SwipeToDiscardItem(
+                        onDiscard = { gameToDiscard = game }
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RectangleShape,
+                            onClick = { navController.navigate("game_scoring/${game.gameId}") }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = course?.name ?: "Unknown Course",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = run {
+                                            val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
+                                            val timeFmt = AndroidDateFormat.getTimeFormat(context)
+                                            "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = "Resume",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "New Game",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Course selection
-        Text(
-            text = "Select Course",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
+        if (incompleteGames.isEmpty()) {
+            Text(
+                text = "Select Course",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         ExposedDropdownMenuBox(
             expanded = showCourseDropdown,
@@ -90,7 +183,7 @@ fun PlayGameScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Player selection
         Text(
@@ -138,12 +231,51 @@ fun PlayGameScreen(
         }
     }
 
-    // Handle navigation when game is created - only if user actually started a game
+    // Handle navigation when game is created
     LaunchedEffect(uiState.currentGame) {
         if (hasUserStartedGame && uiState.currentGame != null) {
             navController.navigate("game_scoring/${uiState.currentGame!!.gameId}")
-            hasUserStartedGame = false // Reset flag
+            hasUserStartedGame = false
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToDiscardItem(
+    onDiscard: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDiscard()
+            }
+            // Always reset so the item snaps back (confirmation dialog handles actual delete)
+            false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Discard",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+    ) {
+        content()
     }
 }
 

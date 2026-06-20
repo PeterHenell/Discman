@@ -41,6 +41,13 @@ class GameViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    val incompleteGames = dataStorage.getIncompleteGames()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     fun selectCourse(course: Course) {
         viewModelScope.launch {
             val holes = dataStorage.getHolesByCourse(course.courseId).first()
@@ -205,6 +212,21 @@ class GameViewModel @Inject constructor(
             val updatedGame = game.copy(startDate = newDate)
             dataStorage.updateGame(updatedGame)
             _uiState.value = _uiState.value.copy(currentGame = updatedGame)
+        }
+    }
+
+    fun markGameCompleted() {
+        viewModelScope.launch {
+            val game = _uiState.value.currentGame ?: return@launch
+            val updatedGame = game.copy(isCompleted = true)
+            dataStorage.updateGame(updatedGame)
+            _uiState.value = _uiState.value.copy(currentGame = updatedGame)
+        }
+    }
+
+    fun deleteGame(game: Game) {
+        viewModelScope.launch {
+            dataStorage.deleteGame(game)
         }
     }
 }

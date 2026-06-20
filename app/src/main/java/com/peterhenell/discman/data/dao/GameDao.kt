@@ -11,6 +11,12 @@ interface GameDao {
     @Query("SELECT * FROM games ORDER BY startDate DESC")
     fun getAllGames(): Flow<List<Game>>
 
+    @Query("SELECT * FROM games WHERE isCompleted = 1 ORDER BY startDate DESC")
+    fun getCompletedGames(): Flow<List<Game>>
+
+    @Query("SELECT * FROM games WHERE isCompleted = 0 ORDER BY startDate DESC")
+    fun getIncompleteGames(): Flow<List<Game>>
+
     @Query("SELECT * FROM games WHERE gameId = :gameId")
     suspend fun getGameById(gameId: Long): Game?
 

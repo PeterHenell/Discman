@@ -34,7 +34,7 @@ class DebugDataSeeder @Inject constructor(
 
         // --- Game ---
         val gameId = dataStorage.insertGame(
-            Game(courseId = courseId, startDate = Date())
+            Game(courseId = courseId, startDate = Date(), isCompleted = true)
         )
 
         // --- Add players to game ---

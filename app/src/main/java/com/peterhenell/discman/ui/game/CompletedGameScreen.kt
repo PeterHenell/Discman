@@ -2,6 +2,7 @@ package com.peterhenell.discman.ui.game
 
 import android.content.Intent
 import android.text.format.DateFormat as AndroidDateFormat
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -264,8 +265,16 @@ fun ScorecardTable(
         Spacer(modifier = Modifier.height(2.dp))
 
         // One row per hole
-        holes.forEach { hole ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        holes.forEachIndexed { index, hole ->
+            val rowBackground = if (index % 2 == 0)
+                MaterialTheme.colorScheme.surface
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.background(rowBackground)
+            ) {
                 ScorecardCell(text = "${hole.holeNumber}", width = holeColWidth, bold = true)
                 ScorecardCell(text = "${hole.par}", width = parColWidth)
                 playerScores.forEach { ps ->
@@ -282,7 +291,6 @@ fun ScorecardTable(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(2.dp))
         }
 
         // Total row
@@ -332,7 +340,7 @@ private fun ScorecardCell(
         color = color,
         modifier = Modifier
             .width(width)
-            .padding(vertical = 4.dp, horizontal = 2.dp)
+            .padding(vertical = 3.dp, horizontal = 2.dp)
     )
 }
 

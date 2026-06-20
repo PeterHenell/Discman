@@ -4,11 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -16,8 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -66,13 +63,17 @@ fun GameScoringScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Game details header
+        // Game details header — course name + datetime on one row
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = course.name,
@@ -80,120 +81,92 @@ fun GameScoringScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Date: ${run {
+                    text = run {
                         val dateFmt = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Locale.getDefault())
                         val timeFmt = AndroidDateFormat.getTimeFormat(context)
                         "${dateFmt.format(game.startDate)} ${timeFmt.format(game.startDate)}"
-                    }}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "Total Par: ${holes.sumOf { it.par }}",
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Scoring grid
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {
-            val listState = rememberLazyListState()
+        // Scoring grid + fixed current-hole panel
+        val holesToShow = remember(holes, uiState.currentHole) {
+            holes.filter { it.holeNumber <= uiState.currentHole }
+        }
+        val currentHole = holes.find { it.holeNumber == uiState.currentHole }
+        val listState = rememberLazyListState()
 
-            LazyColumn(
-                state = listState
-            ) {
-                // Header row
-                item {
-                    ScoringHeaderRow(players = players)
+        // Auto-scroll to the current (last visible) hole when it changes
+        LaunchedEffect(uiState.currentHole, holesToShow.size) {
+            if (holesToShow.isNotEmpty()) {
+                listState.animateScrollToItem(holesToShow.size) // +1 for header item
+            }
+        }
+
+        // Table (top 70%) + current hole panel (bottom 30%)
+        Column(modifier = Modifier.weight(1f)) {
+            // Scrollable table — only holes up to the current one
+            Box(modifier = Modifier.weight(0.7f)) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    item { ScoringHeaderRow(players = players) }
+                    itemsIndexed(holesToShow) { index, hole ->
+                        ScoringHoleRow(
+                            hole = hole,
+                            index = index,
+                            players = players,
+                            playerScores = playerScores,
+                            isCurrentHole = hole.holeNumber == uiState.currentHole,
+                            onHoleClick = { viewModel.setCurrentHole(hole.holeNumber) }
+                        )
+                    }
                 }
+            }
 
-                // Hole rows
-                itemsIndexed(holes) { index, hole ->
-                    ScoringHoleRow(
-                        hole = hole,
+            // Fixed current hole panel — always 30% of the middle section
+            if (currentHole != null) {
+                Box(modifier = Modifier.weight(0.3f).fillMaxWidth()) {
+                    CurrentHoleView(
+                        hole = currentHole,
                         players = players,
                         playerScores = playerScores,
-                        isCurrentHole = hole.holeNumber == uiState.currentHole,
-                        onHoleClick = { viewModel.setCurrentHole(hole.holeNumber) },
                         onScoreChange = { playerId, throws ->
-                            viewModel.updatePlayerThrows(playerId, hole.holeNumber, throws)
+                            viewModel.updatePlayerThrows(playerId, currentHole.holeNumber, throws)
                         }
                     )
                 }
             }
-
-            // Custom scrollbar indicator
-            if (holes.size > 1) {
-                val firstVisibleIndex by remember {
-                    derivedStateOf { listState.firstVisibleItemIndex }
-                }
-                val layoutInfo = listState.layoutInfo
-                val totalItems = layoutInfo.totalItemsCount
-                val visibleItems = layoutInfo.visibleItemsInfo.size
-
-                // Only show scrollbar if there are items that extend beyond the visible area
-                if (totalItems > visibleItems) {
-                    val scrollProgress = if (totalItems > 1) {
-                        firstVisibleIndex.toFloat() / (totalItems - visibleItems).coerceAtLeast(1)
-                    } else 0f
-
-                    // Scrollbar track
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxHeight()
-                            .width(4.dp)
-                            .padding(vertical = 8.dp)
-                            .background(
-                                Color.Gray.copy(alpha = 0.3f),
-                                RoundedCornerShape(2.dp)
-                            )
-                    )
-
-                    // Scrollbar thumb
-                    val thumbHeight = 0.3f // 30% of track height
-                    val thumbOffset = scrollProgress * (1f - thumbHeight)
-
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxHeight(thumbHeight)
-                            .width(4.dp)
-                            .padding(horizontal = 0.dp)
-                            .offset(y = (thumbOffset * 200).dp) // Approximate offset calculation
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                RoundedCornerShape(2.dp)
-                            )
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Action buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Button(
+                onClick = {
+                    viewModel.markGameCompleted()
+                    navController.navigate("completed_game/$gameId")
+                },
+                enabled = uiState.currentHole == holes.lastOrNull()?.holeNumber
+            ) {
+                Text("Complete Game")
+            }
+
             OutlinedButton(
                 onClick = { viewModel.nextHole() },
                 enabled = uiState.currentHole < holes.size
             ) {
                 Text("Next Hole")
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
-            }
-
-            Button(
-                onClick = {
-                    navController.navigate("completed_game/$gameId")
-                }
-            ) {
-                Text("Complete Game")
             }
         }
     }
@@ -227,24 +200,23 @@ fun ScoringHeaderRow(players: List<Player>) {
 @Composable
 fun ScoringHoleRow(
     hole: com.peterhenell.discman.data.entities.Hole,
+    index: Int,
     players: List<Player>,
     playerScores: List<com.peterhenell.discman.ui.model.PlayerScore>,
     isCurrentHole: Boolean,
-    onHoleClick: () -> Unit,
-    onScoreChange: (Long, Int) -> Unit
+    onHoleClick: () -> Unit
 ) {
-    Column {
-        Row(
+    val rowBackground = when {
+        isCurrentHole -> MaterialTheme.colorScheme.secondaryContainer
+        index % 2 == 0 -> MaterialTheme.colorScheme.surface
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    if (isCurrentHole)
-                        MaterialTheme.colorScheme.secondaryContainer
-                    else
-                        MaterialTheme.colorScheme.surface
-                )
+                .background(rowBackground)
                 .clickable { onHoleClick() }
-                .padding(8.dp)
+                .padding(horizontal = 8.dp, vertical = 5.dp)
         ) {
             // Hole number and par
             Text(
@@ -267,17 +239,6 @@ fun ScoringHoleRow(
                 )
             }
         }
-
-        // Expanded current hole view
-        if (isCurrentHole) {
-            CurrentHoleView(
-                hole = hole,
-                players = players,
-                playerScores = playerScores,
-                onScoreChange = onScoreChange
-            )
-        }
-    }
 }
 
 @Composable
@@ -288,9 +249,9 @@ fun CurrentHoleView(
     onScoreChange: (Long, Int) -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RectangleShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

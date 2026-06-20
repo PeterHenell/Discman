@@ -35,6 +35,8 @@ class DataStorageService(
 
     // Game operations
     fun getAllGames(): Flow<List<Game>> = gameDao.getAllGames()
+    fun getCompletedGames(): Flow<List<Game>> = gameDao.getCompletedGames()
+    fun getIncompleteGames(): Flow<List<Game>> = gameDao.getIncompleteGames()
     suspend fun getGameById(gameId: Long): Game? = gameDao.getGameById(gameId)
     suspend fun insertGame(game: Game): Long = gameDao.insertGame(game)
     suspend fun updateGame(game: Game) = gameDao.updateGame(game)

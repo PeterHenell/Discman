@@ -22,5 +22,6 @@ data class Game(
     @PrimaryKey(autoGenerate = true)
     val gameId: Long = 0,
     val courseId: Long,
-    val startDate: Date
+    val startDate: Date,
+    val isCompleted: Boolean = false
 )

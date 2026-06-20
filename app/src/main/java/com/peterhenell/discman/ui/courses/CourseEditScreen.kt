@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -219,6 +220,7 @@ fun HoleEditItem(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RectangleShape,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
